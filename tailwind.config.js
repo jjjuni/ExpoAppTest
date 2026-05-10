@@ -8,4 +8,7 @@ module.exports = {
     extend: {},
   },
   plugins: [],
+  "compilerOptions": {
+    "types": ["@react-three/fiber"]
+  }
 };
