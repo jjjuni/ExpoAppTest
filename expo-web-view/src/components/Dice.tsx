@@ -3,7 +3,8 @@ import { useBox } from "@react-three/cannon";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import getDiceTopFace from "../util/getDiceNum";
 
-
+const FORCE_MULTIPLIER = 4;
+const FORCE = 30;
 export interface DiceHandle {
   roll: () => Promise<number>;
   isMoving: () => boolean;
@@ -27,7 +28,7 @@ const Dice = forwardRef<DiceHandle, { position?: [number, number, number] }>(({ 
       collisionFilterMask: -1,
       material: {
         restitution: 0.8,
-        friction: 0.9,
+        friction: 0.5,
       },
     };
   });
@@ -84,11 +85,11 @@ const Dice = forwardRef<DiceHandle, { position?: [number, number, number] }>(({ 
           resolve(res);
         }
 
-        const randomForceX = Math.random() * 4;
-        const randomForceY = Math.random() * 4;
-        const randomForceZ = Math.random() * 4;
+        const randomForceX = Math.random() * FORCE_MULTIPLIER;
+        const randomForceY = Math.random() * FORCE_MULTIPLIER;
+        const randomForceZ = Math.random() * FORCE_MULTIPLIER;
 
-        api.applyImpulse([0, 20, 0], [0, 0, 0]);
+        api.applyImpulse([0, FORCE, 0], [0, 0, 0]);
         api.applyImpulse(
           [0, 5, 0],
           [randomForceX, randomForceY, randomForceZ]

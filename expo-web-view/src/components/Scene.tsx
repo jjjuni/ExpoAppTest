@@ -1,115 +1,80 @@
-import { Physics } from "@react-three/cannon";
-import { OrbitControls, useGLTF } from "@react-three/drei";
+import {
+  OrbitControls,
+  useGLTF,
+} from "@react-three/drei";
+
 import { Canvas } from "@react-three/fiber";
-import Dice, { type DiceHandle } from "./Dice";
-import Walls from "./Walls";
-import Board from "./Board";
-import { useRef, useState } from "react";
-import { DICE_POSITION } from "../constants/dice";
-import { Pawn } from "./Pawn";
-import { BOARD_PATH } from "../constants/board";
+
+import GameBoard from "./GameBoard";
+import GameUI from "./GameUI";
+
+import { useGame } from "../hooks/useGame";
+import { useBoardStore } from "../store/useBoardStore";
+import { ClipLoader } from "react-spinners";
+import { AnimatePresence, motion } from "framer-motion";
 
 useGLTF.preload("/assets/plane.glb");
-useGLTF.preload("/assets/dice_rounded_white.glb");
+
+useGLTF.preload(
+  "/assets/dice_rounded_white.glb"
+);
 
 export default function Scene() {
-  const diceRefs = useRef<(DiceHandle | null)[]>([]);
-  const [result, setResult] = useState<number | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isMoving, setIsMoving] = useState(false);
+  const {
+    diceRefs,
 
-  const movePawn = async (moveCount: number) => {
-    setIsMoving(true);
+    result,
+    currentIndex,
+    isMoving,
 
-    let nextIndex = currentIndex;
+    rollDices,
+  } = useGame();
 
-    for (let i = 0; i < moveCount; i++) {
-      await new Promise((resolve) => {
-        setTimeout(() => {
-          nextIndex = (nextIndex + 1) % BOARD_PATH.length;
-          
-          setCurrentIndex(nextIndex)
-
-          resolve(true);
-        }, 300);
-      });
-    }
-
-    setIsMoving(false);
-
-    window.ReactNativeWebView?.postMessage(
-      JSON.stringify({
-        type: "PAWN_MOVED",
-        index: nextIndex,
-      })
-    );
-  }
-
-  const rollDices = async () => {
-    if (isMoving) return;
-
-    const dices = diceRefs.current.filter(Boolean);
-
-    const isAllReady = dices.every(
-      (dice) => dice && !dice.isMoving()
-    );
-
-    if (!isAllReady) return;
-
-    const result = await Promise.all(
-      dices.map((dice) => dice!.roll())
-    );
-
-    const total = result.reduce((acc, cur) => acc + cur, 0);
-
-    setResult(total);
-    movePawn(total);
-  };
+  const { isLoading } = useBoardStore();
 
   return (
-    <div className="w-screen h-screen">
-      <Canvas camera={{ position: [40, 50, 40], fov: 40 }}>
-        <ambientLight color={"#FFFFFF"} intensity={0.5} />
+    <>
+      <AnimatePresence>
+        {isLoading &&
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={`w-screen h-screen fixed top-0 flex justify-center items-center transition-all duration-300`}>
+            <ClipLoader color="#777777" size={40} />
+          </motion.div>
+        }
+      </AnimatePresence>
 
-        <directionalLight
-          color={"#FFFFFF"}
-          intensity={3}
-          position={[0, 5, 0]}
-        />
-
-        <Physics gravity={[0, -40, 0]}>
-          {DICE_POSITION.map((pos, i) => (
-            <Dice
-              key={i}
-              ref={(ref) => { diceRefs.current[i] = ref }}
-              position={pos}
-            />
-          ))}
-          <Pawn position={[BOARD_PATH[currentIndex || 0][0], 0, BOARD_PATH[currentIndex || 0][2]]} />
-          <Walls />
-          <Board />
-        </Physics>
-
-        <OrbitControls />
-      </Canvas>
-
-      <div className="absolute bottom-10 w-full flex flex-row justify-center items-center gap-10">
-        <button
-          className="cursor-pointer font-bold text-[40px]"
-          onClick={rollDices}
-          disabled={isMoving}
+      <div className={`w-screen h-screen transition-all duration-300 ${isLoading ? `opacity-0` : `opacity-100`}`}>
+        <Canvas
+          camera={{
+            position: [40, 50, 40],
+            fov: 40,
+          }}
         >
-          ROLL
-        </button>
+          <ambientLight intensity={0.5} />
 
-        <div className="text-[20px] font-bold">
-          결과 : {result}
-        </div>
+          <directionalLight
+            intensity={3}
+            position={[0, 5, 0]}
+          />
 
-        <div className="text-[20px] font-bold">
-          현재 칸 : {currentIndex}
-        </div>
+          <GameBoard
+            diceRefs={diceRefs}
+            currentIndex={currentIndex}
+          />
+
+          <OrbitControls />
+        </Canvas>
+
+        <GameUI
+          result={result}
+          currentIndex={currentIndex}
+          isMoving={isMoving}
+          rollDices={rollDices}
+        />
       </div>
-    </div>
+    </>
   );
 }

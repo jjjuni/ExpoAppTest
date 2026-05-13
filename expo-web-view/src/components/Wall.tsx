@@ -15,8 +15,8 @@ export default function Wall({
         rotation: rotation as [number, number, number],
         type: "Static",
         material: {
-            restitution: 0.5,
-            friction: 1,
+            restitution: 1,
+            friction: 0,
         },
     }));
 
